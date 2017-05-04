@@ -1,0 +1,168 @@
+set encoding=utf8
+if has('persistent_undo')
+if !isdirectory('~/.vim/undodir')
+  call system("mkdir -p ~/.vim/undodir")
+endif
+if filereadable(expand("~/.vim/gnupg.vim"))
+  source ~/.vim/gnupg.vim"
+endif
+
+if !isdirectory('~/.vim/bundle')
+  call system("mkdir -p ~/.vim/bundle")
+  call system("cd  ~/.vim/bundle && git clone https://github.com/bling/vim-airline.git")
+  call system("cd  ~/.vim/bundle && git clone https://github.com/kien/ctrlp.vim.git")
+  call system("cd  ~/.vim/bundle && git clone https://github.com/scrooloose/nerdtree.git")
+  call system("cd  ~/.vim/bundle && git clone https://github.com/tpope/vim-pathogen.git")
+  call system("cd  ~/.vim/bundle && git clone https://github.com/tpope/vim-sensible.git")
+  call system("cd  ~/.vim/bundle && git clone https://github.com/vim-airline/vim-airline-themes.git")
+endif
+
+set undodir=~/.vim/undodir
+set undofile
+set undoreload=10000 "maximum number lines to save for undo on a buffer reload
+endif
+
+set undolevels=1000 "maximum number of changes that can be undone
+
+set incsearch
+set hlsearch
+set showmatch
+set smarttab
+set directory=/tmp/
+filetype plugin on
+runtime! macros/matchit.vim
+set hidden
+set tabstop=2
+set shiftwidth=2
+set expandtab
+"set tags=tags;/
+set nocompatible
+syntax on
+colorscheme ron
+nmap \1 :buff 1<CR>
+nmap \2 :buff 2<CR>
+nmap \3 :buff 3<CR>
+nmap \4 :buff 4<CR>
+nmap \5 :buff 5<CR>
+nmap \6 :buff 6<CR>
+nmap \7 :buff 7<CR>
+nmap \8 :buff 8<CR>
+nmap \9 :buff 9<CR>
+nmap \0 :buff 0<CR>
+nmap \a :set formatoptions-=a<CR>:echo "autowrap disabled"<CR>
+nmap \A :set formatoptions+=a<CR>:echo "autowrap enabled"<CR>
+nmap \b :set nocin tw=80<CR>:set formatoptions+=a<CR>
+nmap \d :%!perltidy<CR>
+nmap \e :NERDTreeToggle<CR>
+nmap \i :call ToggleIndent()<CR>
+nmap \l :setlocal number!<CR>:setlocal number?<CR>
+nmap \M :set noexpandtab tabstop=8 softtabstop=4 shiftwidth=4<CR>
+nmap \m :set expandtab tabstop=2 shiftwidth=2 softtabstop=2<CR>
+nmap \n :bnext<CR>
+nmap \p :bprev<CR>
+nmap \o :set paste!<CR>:set paste?<CR>
+nmap \q :nohlsearch<CR>
+nmap \s :setlocal invspell<CR>
+nmap \t :set expandtab tabstop=4 shiftwidth=4 softtabstop=4<CR>
+nmap \T :set expandtab tabstop=8 shiftwidth=8 softtabstop=4<CR>
+nmap \u :setlocal list!<CR>:setlocal list?<CR>
+nmap \w :setlocal wrap!<CR>:setlocal wrap?<CR>
+nmap \Y :vertical resize 40<CR>:wincmd l<CR>
+nmap \y :exec "vertical resize " . (80 + (&number * &numberwidth))<CR>:wincmd l<CR>
+nmap \z :w<CR>:!open %<CR><CR>
+
+function! ToggleIndent()
+  if exists('b:OldIndentExpr') &&  !empty('b:OldIndentExpr')
+    let &indentexpr=b:OldIndentExpr
+    unlet b:OldIndentExpr
+  else
+   let b:OldIndentExpr = &indentexpr
+    set indentexpr=
+  endif
+endfunction
+function! VCTypeI(dir,depth)
+  if isdirectory(a:dir.'/.git')
+    return 'git'
+  endif
+  if isdirectory(a:dir.'/.svn')
+    return 'svn'
+  endif
+  echo a:dir
+  if a:depth > 5
+    return ''
+  endif
+  return VCTypeI(a:dir.'../', a:depth+1)
+endfunction
+
+function! VCType(dir)
+  if !a:dir=~ "\/$"
+    return VCTypeI(a:dir,0)
+  else
+    return VCTypeI(a:dir.'/',0)
+  endif
+endfunction
+
+function! Get_diff()
+  let _ =  VCType('.')
+  if _ == "git"
+    belowright new diff
+    r !git diff HEAD
+    set ft=diff
+    0
+    set bt=nofile bufhidden=wipe noswapfile nowrap
+  endif    
+  if _ == "svn"
+    belowright new diff
+    r !svn diff
+    set ft=diff
+    0
+    set bt=nofile bufhidden=wipe noswapfile nowrap
+  endif    
+endfunction
+
+highlight SpellBad     term=underline cterm=underline ctermbg=NONE ctermfg=red
+highlight SpellCap     term=underline cterm=underline ctermbg=NONE ctermfg=blue
+highlight SpellRare    term=underline cterm=underline ctermbg=NONE ctermfg=magenta
+highlight SpellLocal   term=underline cterm=underline ctermbg=NONE ctermfg=cyan
+
+" A new Vim package system
+runtime bundle/vim-pathogen/autoload/pathogen.vim
+call pathogen#infect()
+call pathogen#helptags()
+let g:airline_theme='wombat'
+
+let g:ctrlp_map = '<Leader>t'
+let g:ctrlp_match_window_bottom = 0
+let g:ctrlp_match_window_reversed = 0
+let g:ctrlp_custom_ignore = '\v\~$|\.(o|swp|pyc|wav|mp3|ogg|blend)$|(^|[/\\])\.(hg|git|bzr)($|[/\\])|__init__\.py'
+let g:ctrlp_working_path_mode = 0
+let g:ctrlp_dotfiles = 0
+let g:ctrlp_switch_buffer = 0
+nmap ; :CtrlPBuffer<CR>
+
+autocmd BufWinEnter COMMIT_EDITMSG call Get_diff()
+autocmd BufUnload COMMIT_EDITMSG bd diff
+
+autocmd BufWinEnter svn-commit.tmp call Get_diff()
+autocmd BufUnload svn-commit.tmp bd diff
+
+imap <C-K> {% if %}<Left><Left>
+imap <C-L> {% endif %}
+imap <C-E> {%  %}<Left><Left><Left>
+imap <C-T> {{}}<Left><Left>
+nmap ,s :call Get_diff()<CR>
+if has("autocmd")
+  au BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$")
+    \| exe "normal! g'\"" | endif
+endif
+
+" TO SORT: :%! sort
+" vim: nowrap sw=2 sts=2 ts=8 noet:
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+"let g:syntastic_always_populate_loc_list = 1
+"let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 0 
+let g:syntastic_check_on_wq = 0
